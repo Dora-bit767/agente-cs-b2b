@@ -1,0 +1,19 @@
+.venv/
+venv/
+
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Configurações locais
+.vscode/
