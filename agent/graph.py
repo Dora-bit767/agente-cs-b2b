@@ -242,3 +242,4 @@ def criar_grafo():
     fluxo.add_edge("adicionar_creditos", END)
 
     return fluxo.compile()
+

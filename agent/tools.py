@@ -1,7 +1,7 @@
 import httpx
 
 from langchain.tools import tool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from agent.config import SAAS_API_URL
 
@@ -29,7 +29,15 @@ class AdicionarCreditosInput(BaseModel):
         min_length=3,
         description="Justificativa para a adição dos créditos."
     )
+    @field_validator("motivo")
+    @classmethod
+    def validar_motivo(cls, valor: str) -> str:
+        valor = valor.strip()
 
+        if len(valor) < 3:
+            raise ValueError("O motivo deve conter pelo menos 3 caracteres válidos.")
+
+        return valor
 @tool(args_schema=BuscarEmpresaInput)
 def buscar_empresa(nome: str) -> dict:
     """Busca empresas pelo nome fantasia na API SaaS."""
@@ -44,7 +52,11 @@ def buscar_empresa(nome: str) -> dict:
         resposta.raise_for_status()
 
         empresas = resposta.json()
-
+        if not isinstance(empresas, list):
+            return {
+                "status": "erro",
+                "mensagem": "A API retornou um formato inesperado para a lista de empresas."
+            }
         if not empresas:
             return {
                 "status": "nao_encontrada",
@@ -95,7 +107,11 @@ def consultar_assinatura(empresa_id: int) -> dict:
         resposta.raise_for_status()
 
         assinatura = resposta.json()
-
+        if not isinstance(assinatura, list):
+            return {
+                "status": "erro",
+                "mensagem": "A API retornou um formato inesperado para a lista de assinaturas."
+            }
         return {
             "status": "consultada",
             "assinatura": assinatura
@@ -140,7 +156,11 @@ def adicionar_creditos(
         resposta.raise_for_status()
 
         assinatura = resposta.json()
-
+        if not isinstance(assinatura, dict):
+            return {
+                "status": "erro",
+                "mensagem": "A API retornou um formato inesperado após a adição de créditos."
+            }
         return {
             "status": "sucesso",
             "mensagem": "Créditos adicionados com sucesso.",
