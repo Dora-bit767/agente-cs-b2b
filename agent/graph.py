@@ -145,3 +145,100 @@ def validar_solicitacao_creditos(state: AgentState) -> dict:
         "status": "solicitacao_validada",
         "resultado": f"Solicitação validada: {quantidade} créditos. Motivo: {motivo}"
     }
+
+def executar_adicao_creditos(state: AgentState) -> dict:
+    """Executa a adição de créditos após todas as validações."""
+
+    resultado = adicionar_creditos.invoke({
+        "assinaturas_id": state["assinatura_id"],
+        "quantidade": state["quantidade_creditos"],
+        "motivo": state["motivo"]
+    })
+
+    if resultado["status"] != "sucesso":
+        return {
+            "status": "erro_adicao",
+            "resultado": resultado.get(
+                "mensagem",
+                "Não foi possível adicionar os créditos."
+            )
+        }
+
+    return {
+        "status": "sucesso",
+        "resultado": resultado["mensagem"],
+        "assinatura": resultado["assinatura"]
+    }
+def decidir_apos_localizar(state: AgentState) -> str:
+    if state.get("status") == "empresa_encontrada":
+        return "continuar"
+    return "encerrar"
+
+
+def decidir_apos_consultar(state: AgentState) -> str:
+    if state.get("status") == "assinatura_consultada":
+        return "continuar"
+    return "encerrar"
+
+
+def decidir_apos_validar_assinatura(state: AgentState) -> str:
+    if state.get("status") == "assinatura_validada":
+        return "continuar"
+    return "encerrar"
+
+
+def decidir_apos_validar_solicitacao(state: AgentState) -> str:
+    if state.get("status") == "solicitacao_validada":
+        return "continuar"
+    return "encerrar"
+
+def criar_grafo():
+    fluxo = StateGraph(AgentState)
+
+    fluxo.add_node("localizar_empresa", localizar_empresa)
+    fluxo.add_node("consultar_assinatura", consultar_dados_assinatura)
+    fluxo.add_node("validar_assinatura", validar_assinatura)
+    fluxo.add_node("validar_solicitacao", validar_solicitacao_creditos)
+    fluxo.add_node("adicionar_creditos", executar_adicao_creditos)
+
+    fluxo.set_entry_point("localizar_empresa")
+
+    fluxo.add_conditional_edges(
+        "localizar_empresa",
+        decidir_apos_localizar,
+        {
+            "continuar": "consultar_assinatura",
+            "encerrar": END
+        }
+    )
+
+    fluxo.add_conditional_edges(
+        "consultar_assinatura",
+        decidir_apos_consultar,
+        {
+            "continuar": "validar_assinatura",
+            "encerrar": END
+        }
+    )
+
+    fluxo.add_conditional_edges(
+        "validar_assinatura",
+        decidir_apos_validar_assinatura,
+        {
+            "continuar": "validar_solicitacao",
+            "encerrar": END
+        }
+    )
+
+    fluxo.add_conditional_edges(
+        "validar_solicitacao",
+        decidir_apos_validar_solicitacao,
+        {
+            "continuar": "adicionar_creditos",
+            "encerrar": END
+        }
+    )
+
+    fluxo.add_edge("adicionar_creditos", END)
+
+    return fluxo.compile()
