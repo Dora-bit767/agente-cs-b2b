@@ -176,9 +176,13 @@ def decidir_apos_localizar(state: AgentState) -> str:
 
 
 def decidir_apos_consultar(state: AgentState) -> str:
-    if state.get("status") == "assinatura_consultada":
-        return "continuar"
-    return "encerrar"
+    if state.get("status") != "assinatura_consultada":
+        return "encerrar"
+
+    if state.get("quantidade_creditos") is None:
+        return "encerrar"
+
+    return "continuar"
 
 
 def decidir_apos_validar_assinatura(state: AgentState) -> str:
